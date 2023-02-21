@@ -102,7 +102,9 @@ namespace HotLyric.Win32.Utils.LrcProviders
 
                 if (string.IsNullOrEmpty(key)) return null;
 
-                var json = await LrcProviderHelper.TryGetStringAsync($"http://c.y.qq.com/soso/fcgi-bin/client_search_cp?format=json&n={pageSize}&p=1&w={Uri.EscapeDataString(key)}&cr=1&g_tk=5381&t=0", "https://y.qq.com", cancellationToken);
+                // var json = await LrcProviderHelper.TryGetStringAsync($"http://c.y.qq.com/soso/fcgi-bin/client_search_cp?format=json&n={pageSize}&p=1&w={Uri.EscapeDataString(key)}&cr=1&g_tk=5381&t=0", "https://y.qq.com", cancellationToken);
+                // test for aboard use of qqmusic. the link above will return 404 error.
+                var json = await LrcProviderHelper.TryGetStringAsync($"https://c.y.qq.com/splcloud/fcgi-bin/smartbox_new.fcg?key={Uri.EscapeDataString(key)}", "https://y.qq.com", cancellationToken);
 
                 if (string.IsNullOrEmpty(json)) return null;
 
@@ -112,16 +114,13 @@ namespace HotLyric.Win32.Utils.LrcProviders
                     && jObj?["code"]?.Type == JTokenType.Integer
                     && jObj.Value<int>("code") == 0)
                 {
-                    var arr = jObj["data"]?["song"]?["list"] as JArray;
+                    var arr = jObj["data"]?["song"]?["itemlist"] as JArray;
                     if (arr != null && arr.Count > 0)
                     {
                         var musicInfos = arr.Select(c => (
-                                id: c.Value<string?>("songmid"),
-                                name: c.Value<string?>("songname"),
-                                artists: c.Value<JArray?>("singer")
-                                    ?.Select(x => x.Value<string>("name") ?? string.Empty)
-                                    ?.Where(x => !string.IsNullOrEmpty(x))
-                                    ?.ToArray() ?? Array.Empty<string>()))
+                                id: c.Value<string?>("mid"),
+                                name: c.Value<string?>("name"),
+                                artists: (c.Value<string?>("singer")+"/").Split("/",StringSplitOptions.RemoveEmptyEntries)))
                             .Where(c => !string.IsNullOrEmpty(c.id) && !string.IsNullOrEmpty(c.name))
                             .Select(c => new LrcProviderHelper.MusicInfomation(c.id, c.name, c.artists))
                             .ToArray();
